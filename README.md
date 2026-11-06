@@ -1,11 +1,16 @@
-通过CubeMax创建工程，在VSCode（EIDE）或Keil5平台做开发，使用的上位机是secureCRT 9.7。该版本实现了协议下的bin文件传输，包含超时重发、错误退出机制，层级文件间的去耦合有待优化。
-针对V2.0版本，开发过程中遇到的的问题及优化：
-  1. App_IsReady()函数中，“if((app_pc < APP_ADDR) || (app_pc > APP_ADDR + APP_SIZE) || (app_pc & 0x1U) != 0U)”应当改为“if((app_pc < APP_ADDR) || (app_pc > (APP_ADDR + APP_SIZE) || (app_pc & 0x1U) == 0U)”，可能是VSCode代码补全出现了错误。
-  2. 在初期开发时，没注意APP程序与Bootloader程序的时钟树配置不同，导致跳转APP后死机。二者时钟树应当配置一致。
-  3. 写Flash前一定要先擦写对应扇区。
-  4. Ymodem_HandleWaitData()函数中，补充了对于接收到重复数据包时的处理，写入Flash操作。
-  5. Ymodem_HandleWaitEotSecond()函数中，补充了数据帧接收成功后发送字符‘C’的操作，否则字符‘C’只会在Ymodem_HandleWaitEndPacket()函数等待超时后发送。
-  6. 添加了ymodem_flash.c/.h文件，用于完成Flash的擦除、写操作。
-  7. 添加了Ymodem_ParseFileInfo()函数，提取文件头信息。
-  8. Ymodem_HandleWaitHeader()函数中，补充了擦除Flash操作。
-  9. 疑问：APP跳转前发送的字符‘B’，secureCRT 9.7显示不出来，但是使用其他上位机可以捕获到。
+STM32 YMODEM Bootloader
+基于 STM32F4 的 YMODEM 协议 IAP（In-Application Programming）Bootloader，支持通过串口接收 .bin 固件、写入内部 Flash，并跳转执行用户 APP。
+✨ 特性
+标准 YMODEM 协议：支持 128B / 1024B 数据帧，CRC16 校验
+
+状态机驱动：非阻塞轮询式接收，主循环中调用，不占用中断
+
+环形队列 + DMA：串口 DMA 接收，数据入环形队列，解耦接收与协议处理
+
+Flash 安全写入：按扇区擦除、32 位字对齐写入、回读校验
+
+超时重传：控制字符超时自动重发，最大重试次数可配
+
+跳转前环境清理：关闭外设/DMA/中断、复位 RCC、切换向量表，保证 APP 干净启动
+
+上位机兼容：适配 SecureCRT 等常见 YMODEM 发送工具
