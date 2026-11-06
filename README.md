@@ -1,10 +1,5 @@
 ```markdown
 # STM32F4 YMODEM IAP Bootloader
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![STM32](https://img.shields.io/badge/MCU-STM32F4-orange.svg)]()
-[![Protocol](https://img.shields.io/badge/protocol-YMODEM-green.svg)]()
-[![Status](https://img.shields.io/badge/status-working-success.svg)]()
-[![DMA](https://img.shields.io/badge/feature-DMA_RingBuffer-8A2BE2.svg)]()
 
 > 基于 STM32F4 实现标准 YMODEM 协议 IAP（In-Application Programming）Bootloader。
 > 串口接收 `.bin` 固件写入片内 Flash，校验通过后自动跳转用户 APP。
@@ -19,7 +14,6 @@
 - [🚀 快速上手](#-快速上手)
 - [❓ FAQ 常见问题](#-faq-常见问题)
 - [📌 待开发计划](#-待开发计划)
-- [📄 许可证](#-许可证)
 
 ## ✨ 核心特性
 - ✅ **标准 YMODEM 协议**：支持 128B / 1024B 双帧格式，CRC16 校验
@@ -31,7 +25,7 @@
 - ✅ **上位机兼容**：SecureCRT、Xshell、TeraTerm 等支持 YMODEM 的终端工具
 
 ## 📁 项目结构
-```
+'''
 .
 ├── Ymodem/
 │   ├── Src/
@@ -45,7 +39,7 @@
 │       ├── ymodem_crc.h
 │       └── ymodem_flash.h
 └── ...
-```
+'''
 
 ## 🔄 YMODEM 传输时序
 ```
