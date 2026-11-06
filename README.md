@@ -1,4 +1,4 @@
-```markdown
+
 # STM32F4 YMODEM IAP Bootloader
 
 > 基于 STM32F4 实现标准 YMODEM 协议 IAP（In-Application Programming）Bootloader。
@@ -25,7 +25,7 @@
 - ✅ **上位机兼容**：SecureCRT、Xshell、TeraTerm 等支持 YMODEM 的终端工具
 
 ## 📁 项目结构
-'''
+```
 .
 ├── Ymodem/
 │   ├── Src/
@@ -39,7 +39,7 @@
 │       ├── ymodem_crc.h
 │       └── ymodem_flash.h
 └── ...
-'''
+```
 
 ## 🔄 YMODEM 传输时序
 ```
