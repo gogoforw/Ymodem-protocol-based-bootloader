@@ -30,7 +30,7 @@
 ├── Ymodem/
 │   ├── Src/
 │   │   ├── ymodem.c            # YMODEM 接收状态机主逻辑
-│   │   ├── ymodem_port.c       # 移植层：串口收发、超时底层接口
+│   │   ├── ymodem_port.c       # 移植层：数据包提取、数据帧校验、文件头信息提取、超时底层接口
 │   │   ├── ymodem_crc.c        # CRC16 校验算法
 │   │   └── ymodem_flash.c      # Flash 擦写、APP 跳转逻辑
 │   └── Inc/
@@ -47,25 +47,25 @@ PC 发送方                    STM32 接收方
      |                             |
      | <------------- C -----------|  就绪，等待文件信息帧
      |                             |
-     | -------- 文件信息帧 -------> |
-     | <------------- ACK ---------|
-     | <-------------- C ----------|  准备接收数据帧
+     | ------- Frame Header -----> |
+     | <---------- ACK ------------|
+     | <----------- C -------------|  准备接收数据帧
      |                             |
-     | -------- 数据帧 1 ---------> |
-     | <------------ ACK ----------|
+     | --------- Frame 1 --------> |
+     | <---------- ACK ------------|
      |                             |
-     | -------- 数据帧 N ---------> |
-     | <------------ ACK ----------|
+     | --------- Frame N --------> |
+     | <---------- ACK ------------|
      |                             |
-     | ----------- EOT -----------> |  第一次 EOT
-     | <----------- NAK -----------|
+     | ----------- EOT ----------> |  第一次 EOT
+     | <---------- NAK ------------|
      |                             |
-     | ----------- EOT -----------> |  第二次 EOT
-     | <----------- ACK -----------|
-     | <------------- C -----------|
+     | ----------- EOT ----------> |  第二次 EOT
+     | <---------- ACK ------------|
+     | <----------- C -------------|
      |                             |
-     | ------ 空文件信息帧 -------> |  传输结束标记
-     | <----------- ACK -----------|
+     | ------- Empty Frame ------> |  传输结束标记
+     | <---------- ACK ------------|
 ```
 
 ## 🧠 状态机设计
@@ -97,7 +97,7 @@ main()
                     ├── Ymodem_ExtractPacket()   // 从环形队列提取完整帧
                     ├── Ymodem_CheckDataPacket() // 帧序号、CRC校验
                     ├── Ymodem_ParseFileInfo()   // 解析文件名、固件长度
-                    ├── Ymodem_SendByte()        // 下发 ACK / NAK / C
+                    ├── Ymodem_SendByte()        // 发送 ACK / NAK / C
                     └── FLASH_If_Write()         // Flash 写入
 ```
 
@@ -113,13 +113,13 @@ main()
 | APPLICATION_ADDRESS | 0x08010000 | APP 运行起始地址，Bootloader 占用前 64KB |
 | USER_FLASH_END_ADDRESS | 0x08100000 | 片内 Flash 结束地址（1MB） |
 
-> ⚠️ **重要提醒**：修改 APP 分区大小时，需要同步更新：`FILE_APP_SIZE_MAX`、APP 工程链接脚本地址、`VECT_TAB_OFFSET`。
+> ⚠️ **重要提醒**：修改 APP 分区大小时，需要同步更新：`FILE_APP_SIZE_MAX`、APP 工程链接脚本地址。
 
 ## 🚀 快速上手
 1. 编译 Bootloader，烧录至 `0x08000000`
-2. 配置 APP 工程：链接起始地址 `0x08010000`，`VECT_TAB_OFFSET = 0x10000`
+2. 配置 APP 工程：`IROM1 Start Address = 0x08010000`，`IROM1 Size = 0x10000`
 3. APP 编译输出 `.bin` 固件（不要使用 .elf / .hex）
-4. 串口连接开发板与 PC，打开 SecureCRT / Xshell
+4. 串口连接开发板与 PC，打开 SecureCRT
 5. 复位开发板进入 Bootloader，终端选择 YMODEM 发送，选中 bin 文件
 6. 传输校验完成后，Bootloader 自动跳转运行 APP
 
@@ -133,7 +133,7 @@ A：
 1. DMA 环形队列长度不足，适当加大环 buffer；
 2. 串口波特率过高，优先测试 115200；
 3. 检查接线，TX/RX 交叉，共地；
-4. 确认上位机 YMODEM 模式（标准 YMODEM，不是 Y-Modem-G）。
+4. 确认上位机 YMODEM 模式（标准 YMODEM）。
 
 ### Q3：固件接收成功，但是跳转后 APP 死机、无响应
 A：高频踩坑点：
@@ -141,15 +141,13 @@ A：高频踩坑点：
 2. APP 工程链接脚本地址、偏移量和 Bootloader 配置不一致；
 3. APP 里没有重新初始化时钟、SysTick；
 4. Bootloader 跳转前没有关闭全局中断、DMA、串口外设。
+5. APP 工程时钟树设置与 Bootloader 不一致。
 
-### Q4：为什么必须传输结束后发空文件帧？
-A：YMODEM 协议规范，空文件信息包作为传输结束标识，用于通知接收方本次传输会话结束。
-
-### Q5：支持大于 1MB Flash 的芯片吗？
+### Q4：支持大于 1MB Flash 的芯片吗？
 A：本项目默认配置 STM32F4 1MB Flash，修改 `USER_FLASH_END_ADDRESS` 即可适配更大 Flash，注意扇区编号和擦除函数。
 
 ### Q6：可以移植到 STM32F1 / F7 / H7 吗？
-A：协议层（ymodem.c、ymodem_crc.c）无平台依赖；只需要重新实现 `ymodem_port.c`（串口收发、超时）和 `ymodem_flash.c`（Flash 操作）。
+A：协议层（ymodem.c、ymodem_crc.c）无平台依赖；只需要重新实现 `ymodem_port.c`和 `ymodem_flash.c`及其头文件。
 
 ## 📌 待开发计划
 - [ ] YMODEM 上行发送（设备 → PC 上传固件）
