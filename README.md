@@ -1,6 +1,6 @@
 通过CubeMax创建工程，在VSCode（EIDE）或Keil5平台做开发，使用的上位机是secureCRT 9.7。该版本实现了协议下的bin文件传输，包含超时重发、错误退出机制，层级文件间的去耦合有待优化。
 针对V2.0版本，开发过程中遇到的的问题及优化：
-  1. App_IsReady()函数中，“if((app_pc < APP_ADDR) || (app_pc > APP_ADDR + APP_SIZE) || (app_pc & 0x1U) != 0U)”应当改为“if((app_pc < APP_ADDR) || (app_pc > (APP_ADDR + APP_SIZE) || (app_pc & 0x1U) != 0U)”，可能是VSCode代码补全出现了错误。
+  1. App_IsReady()函数中，“if((app_pc < APP_ADDR) || (app_pc > APP_ADDR + APP_SIZE) || (app_pc & 0x1U) != 0U)”应当改为“if((app_pc < APP_ADDR) || (app_pc > (APP_ADDR + APP_SIZE) || (app_pc & 0x1U) == 0U)”，可能是VSCode代码补全出现了错误。
   2. 在初期开发时，没注意APP程序与Bootloader程序的时钟树配置不同，导致跳转APP后死机。二者时钟树应当配置一致。
   3. 写Flash前一定要先擦写对应扇区。
   4. Ymodem_HandleWaitData()函数中，补充了对于接收到重复数据包时的处理，写入Flash操作。
